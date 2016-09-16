@@ -29,6 +29,8 @@
 #define PCC_STS_UD	0x01	/* update request */
 #define DRIVER_IC_FIH	4
 
+#define LCD_GPIO_MAX 2
+
 /* panel DriverIC type */
 enum {
 	PANEL_DRIVER_IC_R63311,

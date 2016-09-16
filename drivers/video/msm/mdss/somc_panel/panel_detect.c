@@ -53,12 +53,32 @@ static int __init lcdid_adc_setup(char *str)
 }
 __setup("lcdid_adc=", lcdid_adc_setup);
 
+
+struct lcd_gpio_data {
+	int id;
+	char name[64];
+	int error;
+	int value;
+	u32 mask;
+	u32 shift;
+};
+
 static int panel_detect_setup(struct device_node **node,
 			struct mdss_panel_specific_pdata *spec_pdata,
 			struct platform_device *ctrl_pdev)
 {
 	struct device_node *parent = of_get_parent(*node);
-	int rc, lcd_id;
+	struct lcd_gpio_data gpio[LCD_GPIO_MAX];
+	int i;
+	int rc = 0;
+	int gpio_count;
+	const u32 * cfgarray;
+	int cfg_len;
+	bool use_tlmm_cfg = false;
+	u32 cfg;
+	int delay;
+	int use_pwr_detect = 1;
+	int lcd_id;
 
 	if (of_machine_is_compatible("somc,fih-board")) {
 		spec_pdata->driver_ic = DRIVER_IC_FIH;
@@ -68,41 +88,117 @@ static int panel_detect_setup(struct device_node **node,
 
 	spec_pdata->driver_ic = PANEL_DRIVER_IC_NONE;
 
-	lcd_id = of_get_named_gpio(parent, "somc,dric-gpio", 0);
-	if (!gpio_is_valid(lcd_id)) {
-		pr_err("%s:%d, DriverIC gpio not specified\n",
-						__func__, __LINE__);
-		if (of_machine_is_compatible("somc,amami-row"))
-			return 0;
-
+	gpio_count = of_gpio_named_count(parent, "somc,dric-gpio");
+	if (gpio_count <= 0) {
+		pr_err("%s: dric-gpio array not specified\n", __func__);
 		return -ENODEV;
 	}
+	if (gpio_count > LCD_GPIO_MAX)
+		gpio_count = LCD_GPIO_MAX;
 
-	rc = gpio_request(lcd_id, "lcd_id");
-	if (rc) {
-		pr_err("%s: request lcd id gpio failed, rc=%d\n",
-			__func__, rc);
-		return rc;
+	memset(gpio, 0, sizeof(gpio));
+	for (i=0; i < gpio_count; i++) {
+		gpio[i].id = -1;
+		gpio[i].error = -ENODEV;
 	}
 
-	rc = gpio_direction_input(lcd_id);
-	if (rc) {
-		pr_err("%s: set_direction for lcd_id gpio failed, rc=%d\n",
-			__func__, rc);
-		goto out;
+	cfgarray = of_get_property(parent, "somc,dric-gpio-cfg", &cfg_len);
+	if (cfgarray) {
+		if (cfg_len < gpio_count * 2 * sizeof(uint32_t)) {
+			pr_err("%s: dric-gpio-cfg array not correct\n", __func__);
+			return -ENODEV;
+		}
+		for (i=0; i < gpio_count; i++) {
+			of_property_read_u32_index(parent, "somc,dric-gpio-cfg",
+				i*2, &gpio[i].mask);
+			of_property_read_u32_index(parent, "somc,dric-gpio-cfg",
+				i*2 + 1, &gpio[i].shift);
+		}
+	} else {
+		if (gpio_count >= 2) {
+			pr_err("%s: dric-gpio-cfg array not specified\n", __func__);
+			return -ENODEV;
+		}
 	}
-	usleep_range(20, 30);
 
-	mdss_dsi_panel_power_detect(ctrl_pdev, 1);
-	spec_pdata->driver_ic = gpio_get_value(lcd_id);
-	mdss_dsi_panel_power_detect(ctrl_pdev, 0);
+	use_tlmm_cfg = of_property_read_bool(parent, "somc,dric-gpio-tlmm");
 
-	pr_info("%s: DriverIC GPIO: %d\n", __func__, spec_pdata->driver_ic);
+	rc = of_property_read_u32(parent, "somc,dric-gpio-power-detect",
+		&use_pwr_detect);
+	if (rc)
+		use_pwr_detect = 1;
 
-	spec_pdata->lcd_id = spec_pdata->driver_ic;
+	rc = of_property_read_u32(parent, "somc,dric-gpio-delay", &delay);
+	if (rc)
+		delay = 20; // usec
+
+	for (i=0; i < gpio_count; i++) {
+		gpio[i].id = of_get_named_gpio(parent, "somc,dric-gpio", i);
+		if (!gpio_is_valid(gpio[i].id)) {
+			pr_err("%s: DriverIC gpio-%d not specified\n",
+				__func__, i);
+			return -ENODEV;
+		}
+	}
+
+	for (i=0; i < gpio_count; i++) {
+		snprintf(gpio[i].name, sizeof(gpio[i].name), "lcd_id_%d", i);
+		gpio[i].error = gpio_request(gpio[i].id, gpio[i].name);
+		if (gpio[i].error) {
+			rc = gpio[i].error;
+			pr_err("%s: request %s gpio failed, rc=%d\n",
+				__func__, gpio[i].name, rc);
+			goto out;
+		}
+		if (use_tlmm_cfg) {
+			cfg = GPIO_CFG(gpio[i].id, 0, GPIO_CFG_INPUT,
+				GPIO_CFG_NO_PULL, GPIO_CFG_8MA); 
+			rc = gpio_tlmm_config(cfg, GPIO_CFG_ENABLE);
+			if (rc) {
+				pr_err("%s: unable to config tlmm for %s, rc=%d \n",
+					__func__, gpio[i].name, rc);
+				goto out;
+			}
+		}
+		rc = gpio_direction_input(gpio[i].id);
+		if (rc) {
+			pr_err("%s: set_direction for %s gpio failed, rc=%d\n",
+				__func__, gpio[i].name, rc);
+			goto out;
+		}
+	}
+
+	if (delay <= 20000) {
+		usleep_range(delay, delay * 3 / 2);
+	} else {
+		msleep(delay / 1000);
+	}
+
+	lcd_id = 0;
+	for (i=0; i < gpio_count; i++) {
+		if (use_pwr_detect) {
+			mdss_dsi_panel_power_detect(ctrl_pdev, 1);
+		}
+		gpio[i].value = gpio_get_value(gpio[i].id);
+		if (use_pwr_detect) {
+			mdss_dsi_panel_power_detect(ctrl_pdev, 0);
+		}
+		if (gpio[i].mask)
+			gpio[i].value &= gpio[i].mask;
+		if (gpio[i].shift)
+			gpio[i].value <<= gpio[i].shift;
+		lcd_id |= gpio[i].value;
+	}
+
+	pr_info("%s: DriverIC lcd_id = %d\n", __func__, lcd_id);
+	spec_pdata->driver_ic = lcd_id;
+	spec_pdata->lcd_id = lcd_id;
 
 out:
-	gpio_free(lcd_id);
+	for (i=0; i < gpio_count; i++) {
+		if (gpio[i].id >= 0 && gpio[i].error == 0)
+			gpio_free(gpio[i].id);
+	}
 	return rc;
 }
 
