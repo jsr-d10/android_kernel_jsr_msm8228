@@ -541,5 +541,7 @@
 		qcom,mdss-dsi-pan-fps-update = "dfps_immediate_porch_mode";
 		qcom,mdss-dsi-min-refresh-rate = <45>;
 		qcom,cont-splash-enabled;
+		somc,dric-only-detect;
+		somc,driver-ic = <1>;
 	};
 };

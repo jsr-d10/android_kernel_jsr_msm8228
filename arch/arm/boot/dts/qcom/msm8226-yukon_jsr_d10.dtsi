@@ -252,7 +252,11 @@
 };
 
 &mdss_mdp {
-	somc,dric-gpio = <&msmgpio 23 0>;
+	somc,dric-gpio = <&msmgpio 4 0>, <&msmgpio 5 0>;
+	somc,dric-gpio-cfg = <0x01 0>, <0x01 1>;
+	somc,dric-gpio-tlmm;
+	somc,dric-gpio-power-detect = <0>;
+	somc,dric-gpio-delay = <5000>;
 	/delete-node/ qcom,mdss_dsi_sim_video;
 	/delete-node/ qcom,mdss_dsi_sim_cmd;
 };
