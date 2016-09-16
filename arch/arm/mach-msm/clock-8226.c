@@ -3221,6 +3221,10 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("dma_bam_pclk", gcc_bam_dma_ahb_clk.c, "msm_sps"),
 
 	/* I2C Clocks */
+#ifdef CONFIG_BOARD_JSR_D10A
+	CLK_LOOKUP("iface_clk",          gcc_blsp1_ahb_clk.c, "f9923000.i2c"),
+	CLK_LOOKUP("core_clk", gcc_blsp1_qup1_i2c_apps_clk.c, "f9923000.i2c"),
+#endif
 	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c, "f9927000.i2c"),
 	CLK_LOOKUP("core_clk", gcc_blsp1_qup5_i2c_apps_clk.c, "f9927000.i2c"),
 
