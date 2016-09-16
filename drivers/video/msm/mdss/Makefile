@@ -1,4 +1,5 @@
 ccflags-y += -I$(src)
+ccflags-y += -Wno-unused-function
 
 obj-$(CONFIG_FB_MSM_MDSS_MHL3) += mhl3/
 
