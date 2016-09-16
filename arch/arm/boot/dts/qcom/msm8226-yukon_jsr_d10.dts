@@ -1,0 +1,77 @@
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+#include "msm8226-v2.dtsi"
+#include "msm8226-memory.dtsi"
+#include "msm8226-qseecom.dtsi"
+#include "msm8226-sharedmem.dtsi"
+#include "msm8926-yukon_common.dtsi"
+#include "msm8226-yukon_jsr_d10.dtsi"
+#include "msm8226-yukon_jsr_d10-camera-sensor.dtsi"
+#include "dsi-panel-nt35590-720p-auo-video.dtsi"
+#include "dsi-panel-nt35590-720p-cmi-video.dtsi"
+#include "dsi-panel-nt35521-720p-auo-asi-video.dtsi"
+#include "dsi-panel-nt35521-720p-lg-video.dtsi"
+
+/ {
+	model = "Qualcomm MSM 8226v2 QRD";
+	compatible = "qcom,msm8226-qrd", "qcom,msm8226", "qcom,qrd", "jsr,d10";
+	qcom,board-id = <11 0>;
+};
+
+&modem_mem {
+	status = "disabled";
+};
+
+&peripheral_mem {
+	status = "disabled";
+};
+
+&qsecom_mem {
+	linux,memory-limit = <0x0>;
+};
+
+&clock_gcc {
+	compatible = "qcom,gcc-8226-v2";
+};
+
+&soc {
+	qcom,mdss_dsi@fd922800 {
+		/delete-property/ qcom,platform-te-gpio;
+	};
+
+	gpio_keys {
+		/delete-node/ camera_focus;
+		/delete-node/ camera_snapshot;
+		/delete-node/ vol_down;
+
+		function_key {
+			label = "function";
+			gpios = <&msmgpio 107 0x1>;
+			linux,input-type = <1>;
+			linux,code = <249>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+		};
+
+		vol_up {
+			label = "volume_up";
+			gpios = <&msmgpio 106 0x1>;
+			linux,input-type = <1>;
+			linux,code = <115>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+		};
+	};
+};
+
