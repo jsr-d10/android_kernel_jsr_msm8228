@@ -14,6 +14,8 @@ enum {
 	FUNCTIONFS_DESCRIPTORS_MAGIC_V2 = 3,
 };
 
+#define FUNCTIONFS_SS_DESC_MAGIC 0x0055DE5C
+
 enum functionfs_flags {
 	FUNCTIONFS_HAS_FS_DESC = 1,
 	FUNCTIONFS_HAS_HS_DESC = 2,
@@ -33,6 +35,17 @@ struct usb_endpoint_descriptor_no_audio {
 	__u8  bInterval;
 } __attribute__((packed));
 
+
+/*
+ * All numbers must be in little endian order.
+ */
+
+struct usb_functionfs_descs_head {
+	__le32 magic;
+	__le32 length;
+	__le32 fs_count;
+	__le32 hs_count;
+} __attribute__((packed));
 
 /*
  * Descriptors format:
