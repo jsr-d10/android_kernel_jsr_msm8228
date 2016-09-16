@@ -258,6 +258,7 @@
 };
 
 &mdss_fb0 {
+	qcom,memblock-reserve = <0x03200000 0xFA0000>;
 	/delete-property/ qcom,mdss-fb-splash-logo-enabled;
 	/delete-node/ qcom,cont-splash-memory;
 };
