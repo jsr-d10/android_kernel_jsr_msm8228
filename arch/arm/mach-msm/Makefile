@@ -54,6 +54,8 @@ else ifdef CONFIG_MACH_SONY_TIANCHI
 	obj-$(CONFIG_MACH_SONY_TIANCHI) += board-sony_yukon_tianchi-gpiomux.o
 else ifdef CONFIG_MACH_SONY_SEAGULL
 	obj-$(CONFIG_MACH_SONY_SEAGULL) += board-sony_yukon_seagull-gpiomux.o
+else ifdef CONFIG_BOARD_JSR_D10A
+	obj-$(CONFIG_BOARD_JSR_D10A) += board-sony_yukon_jsr_d10-gpiomux.o
 else
 	obj-$(CONFIG_ARCH_MSM8226) += board-8226-gpiomux.o bms-batterydata-oem.o
 endif
