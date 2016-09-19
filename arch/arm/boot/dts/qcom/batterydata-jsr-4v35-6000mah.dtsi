@@ -8,6 +8,7 @@ qcom,jsr-4v35-6000mAh-data {
 	qcom,v-cutoff-uv = <3400000>;
 	qcom,chg-term-ua = <100000>;
 	qcom,batt-id-kohm = <100>;
+	qcom,battery-type = "JSR_4v35_6000mAh";
 
 	qcom,rbatt-sf-lut {
 		qcom,lut-col-legend = <(-20) (-10) 0 25 40 60>;
